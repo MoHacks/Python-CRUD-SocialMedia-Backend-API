@@ -3,14 +3,18 @@ from fastapi import FastAPI, Body, Response, status, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from random import randrange
 import collections
 import time
 import psycopg2
-from . import dbmodels
+from . import dbmodels, schemas
 from .db import SessionLocal, engine, get_db
+from passlib.context import CryptContext
 
+
+# tell passlib to use bcrypt hashing algorithm 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 dbmodels.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -44,13 +48,7 @@ HTTP MAIN METHODS: GET, POST, PUT (pass all fields)/Patch(pass subset of fields)
 
 '''
 
-# BaseModel used for schema validation, 
-# in this case, its title and content
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True #NOTE: Optional field that defaults to True
-    
+
 while True:
     try: 
         connect = psycopg2.connect(
@@ -74,18 +72,18 @@ my_posts = [{"title": "title of post 1", "content": "content of post 1", "id": 1
 def root():
     return {"nice": "Hello World"}
 
-@app.get("/post")
+@app.get("/post", response_model=List[schemas.Post])
 def get_Post(db: Session = Depends(get_db)):
     # cursor.execute("SELECT * FROM posts")
     # posts = cursor.fetchall()
     posts = db.query(dbmodels.Post).all()
-    return {"data:": posts}
+    return posts
 
 # Post pydantic model used for model validation
 # the %s is used as a placeholder to pass data to the database, otherwise, the data would be passed in directly as a string,
 # making you vulerable to SQL injections 
-@app.post("/post", status_code=status.HTTP_201_CREATED)
-def make_Post(post: Post, db: Session = Depends(get_db)):
+@app.post("/post", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
+def make_Post(post: schemas.PostCreate, db: Session = Depends(get_db)):
 
     # cursor.execute("INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *", 
     #                (post.title, post.content, post.published))
@@ -100,7 +98,7 @@ def make_Post(post: Post, db: Session = Depends(get_db)):
     db.add(newPost)
     db.commit()
     db.refresh(newPost) # NOTE: this will return the newly created post
-    return {"data": newPost}
+    return newPost
 
 
 # NOTE: id is initially a STRING, but id: int transformed it into an INT! This is so critical because the 
@@ -114,10 +112,8 @@ def get_Post_Id(id: int, db: Session = Depends(get_db)):
     
     post = db.query(dbmodels.Post).filter(dbmodels.Post.id == id).first()
     
-    return {"data": post}
-        
-    raise HTTPException(status_code=404, detail=f"post with id of {str(id)} not found with status code 404") 
-
+    return post
+         
 
 @app.delete("/post/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_Post(id: int, db: Session = Depends(get_db)):
@@ -134,8 +130,8 @@ def delete_Post(id: int, db: Session = Depends(get_db)):
     
     raise HTTPException(status_code=404, detail=f"post with id of {str(id)} not found with status code 404")
 
-@app.put("/post/{id:int}", status_code=status.HTTP_201_CREATED)
-def update_Post(id: int, post: Post, db: Session = Depends(get_db)):
+@app.put("/post/{id:int}", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
+def update_Post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db)):
     # cursor.execute("UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *", 
     #                (post.title, post.content, post.published, str(id)))
     # updatedPost = cursor.fetchone()
@@ -152,7 +148,7 @@ def update_Post(id: int, post: Post, db: Session = Depends(get_db)):
         
         postQuery.update(post.model_dump(), synchronize_session=False)
         db.commit()
-        return {"message": postQuery.first()}
+        return postQuery.first()
     
     raise HTTPException(status_code=404, detail=f"post with id of {str(id)} not found with status code 404")
     
