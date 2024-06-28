@@ -1,3 +1,4 @@
+from email import utils
 from turtle import title
 from fastapi import FastAPI, Body, Response, status, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,13 +9,13 @@ from random import randrange
 import collections
 import time
 import psycopg2
-from . import dbmodels, schemas
+from . import dbmodels, schemas, utils
 from .db import SessionLocal, engine, get_db
 from passlib.context import CryptContext
-
+from .routers import post, user, auth
 
 # tell passlib to use bcrypt hashing algorithm 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 dbmodels.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -67,88 +68,15 @@ while True:
 my_posts = [{"title": "title of post 1", "content": "content of post 1", "id": 1}, 
             {"title": "favorite foods", "content": "pizza", "id": 2}]
 
+
+# Include the route for posts from post.py
+app.include_router(post.router)
+app.include_router(user.router)
+app.include_router(auth.router)
+
+
 # GET used for retreiving data
 @app.get("/")
 def root():
     return {"nice": "Hello World"}
 
-@app.get("/post", response_model=List[schemas.Post])
-def get_Post(db: Session = Depends(get_db)):
-    # cursor.execute("SELECT * FROM posts")
-    # posts = cursor.fetchall()
-    posts = db.query(dbmodels.Post).all()
-    return posts
-
-# Post pydantic model used for model validation
-# the %s is used as a placeholder to pass data to the database, otherwise, the data would be passed in directly as a string,
-# making you vulerable to SQL injections 
-@app.post("/post", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
-def make_Post(post: schemas.PostCreate, db: Session = Depends(get_db)):
-
-    # cursor.execute("INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *", 
-    #                (post.title, post.content, post.published))
-    # newPost = cursor.fetchone()
-    # connect.commit()
-    # newPost = dbmodels.Post(title=post.title, content=post.content, published=post.published)
-    # Converts Post Object to Dictionary
-    post = post.model_dump()
-    
-    # NOTE: unpack the dictionary into the Post Object 
-    newPost = dbmodels.Post(**post)
-    db.add(newPost)
-    db.commit()
-    db.refresh(newPost) # NOTE: this will return the newly created post
-    return newPost
-
-
-# NOTE: id is initially a STRING, but id: int transformed it into an INT! This is so critical because the 
-# next function below expects a string called "latest", if id: int is not used, it will not work because latest will be
-# passed into id as a string and it will not be able to find the post because it is a string
-@app.get("/post/{id:int}", status_code=status.HTTP_200_OK)
-def get_Post_Id(id: int, db: Session = Depends(get_db)):
-    
-    # cursor.execute("SELECT * FROM posts WHERE id = %s", str(id))
-    # post = cursor.fetchone()
-    
-    post = db.query(dbmodels.Post).filter(dbmodels.Post.id == id).first()
-    
-    return post
-         
-
-@app.delete("/post/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_Post(id: int, db: Session = Depends(get_db)):
-
-    # cursor.execute("DELETE FROM posts WHERE id = %s RETURNING *", (str(id)))
-    # deletedPost = cursor.fetchone()
-
-    post = db.query(dbmodels.Post).filter(dbmodels.Post.id == id)
-
-    if post.first():
-        post.delete(synchronize_session=False)
-        db.commit()
-        return {"message": "post deleted successfully"}
-    
-    raise HTTPException(status_code=404, detail=f"post with id of {str(id)} not found with status code 404")
-
-@app.put("/post/{id:int}", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
-def update_Post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db)):
-    # cursor.execute("UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *", 
-    #                (post.title, post.content, post.published, str(id)))
-    # updatedPost = cursor.fetchone()
-    
-    # if updatedPost:
-    #     connect.commit()
-    #     return {"message": updatedPost}
-    
-    postQuery = db.query(dbmodels.Post).filter(dbmodels.Post.id == id)
-
-    postRecord = postQuery.first()
-    
-    if postRecord:
-        
-        postQuery.update(post.model_dump(), synchronize_session=False)
-        db.commit()
-        return postQuery.first()
-    
-    raise HTTPException(status_code=404, detail=f"post with id of {str(id)} not found with status code 404")
-    
