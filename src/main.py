@@ -32,7 +32,9 @@ HTTP MAIN METHODS: GET, POST, PUT (pass all fields)/Patch(pass subset of fields)
 
 # tell passlib to use bcrypt hashing algorithm 
 # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-dbmodels.Base.metadata.create_all(bind=engine)
+
+# NOTE: No longer needed since we have Alembic, and this is for SQLAlchemy to create the tables
+# dbmodels.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
