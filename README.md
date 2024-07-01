@@ -1,4 +1,4 @@
-A Create, Read, Update, Delete (CRUD) Social Media API backend Application using 
+A Create, Read, Update, Delete (CRUD) Social Media API backend Application using <br>
 <img src="https://upload.wikimedia.org/wikiversity/en/thumb/8/8c/FastAPI_logo.png/800px-FastAPI_logo.png" alt="Example image" width="100" height="50">
 .
 
