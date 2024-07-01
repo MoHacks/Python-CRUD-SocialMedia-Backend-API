@@ -1,4 +1,5 @@
 from fastapi import APIRouter, FastAPI, Body, Response, status, HTTPException, Depends
+from sqlalchemy import func
 from .. import dbmodels, schemas # oath2 has import beyong top-level package
 from sqlalchemy.orm import Session
 from ..db import SessionLocal, engine, get_db
@@ -11,14 +12,17 @@ router = APIRouter(
     tags=['Post']
 )
 
-@router.get("/", response_model=List[schemas.Post])
+@router.get("/", response_model=List[schemas.PostVote])
 def get_Post(db: Session = Depends(get_db), current_user = Depends(oauth2.get_current_user), 
              limit: int = 8, skip: int = 0, search: Optional[str] = ""):
     # cursor.execute("SELECT * FROM posts")
     # posts = cursor.fetchall()
     
-    posts = db.query(dbmodels.Post).filter(dbmodels.Post.title.contains(search)).limit(limit).offset(skip).all()
+    # posts = db.query(dbmodels.Post).filter(dbmodels.Post.title.contains(search)).limit(limit).offset(skip).all()
 
+    # SQLAlchemy automatically makes join default to LEFT INNER JOIN
+    posts = db.query(dbmodels.Post, func.count(dbmodels.Vote.post_id).label("votes")).join(dbmodels.Vote, dbmodels.Post.id == dbmodels.Vote.post_id, isouter=True).group_by(dbmodels.Post.id).filter(dbmodels.Post.title.contains(search)).limit(limit).offset(skip).all()
+    
     return posts
 
 # Post pydantic model used for model validation
@@ -53,13 +57,15 @@ def make_Post(post: schemas.PostCreate, db: Session = Depends(get_db), current_u
 # passed into id as a string and it will not be able to find the post because it is a string
 # The response_model is used to define the schema of the response when returned from the function (as defined by 
 # the schemas.py file)
-@router.get("/{id:int}", status_code=status.HTTP_200_OK, response_model=schemas.Post)
+@router.get("/{id:int}", status_code=status.HTTP_200_OK, response_model=schemas.PostVote)
 def get_Post_Id(id: int, db: Session = Depends(get_db), current_user = Depends(oauth2.get_current_user)):
     
     # cursor.execute("SELECT * FROM posts WHERE id = %s", str(id))
     # post = cursor.fetchone()
     
-    post = db.query(dbmodels.Post).filter(dbmodels.Post.id == id).first()
+    # post = db.query(dbmodels.Post).filter(dbmodels.Post.id == id).first()
+    
+    post = db.query(dbmodels.Post, func.count(dbmodels.Vote.post_id).label("votes")).join(dbmodels.Vote, dbmodels.Post.id == dbmodels.Vote.post_id, isouter=True).group_by(dbmodels.Post.id).filter(dbmodels.Post.id == id).first()
     
     return post
          

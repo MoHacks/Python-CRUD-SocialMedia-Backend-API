@@ -6,11 +6,10 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from random import randrange
 
-
 from . import dbmodels, schemas, utils
 from .db import engine
 from passlib.context import CryptContext
-from .routers import post, user, auth
+from .routers import post, user, auth, vote
 
 '''
 Fast-API has built-in SWAGGER UI: http://localhost:8000/docs
@@ -50,6 +49,7 @@ allow_headers=["*"],
 app.include_router(post.router)
 app.include_router(user.router)
 app.include_router(auth.router)
+app.include_router(vote.router)
 
 
 # GET used for retreiving data

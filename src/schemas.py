@@ -1,7 +1,7 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from pydantic.types import conint
 from datetime import datetime
-from typing import Optional
+from typing import Annotated, Optional
 
 # BaseModel used for schema validation, and as a base class for other schemas
 class PostBase(BaseModel):
@@ -31,18 +31,18 @@ class Post(PostBase):
     created_at: datetime
     owner_id: int
     owner: UserOut
+
     class Config:
         orm_mode = True
 
 # 
-class PostOut(BaseModel):
+class PostVote(BaseModel):
     Post: Post
     votes: int
 
     class Config:
         orm_mode = True
-
-
+        
 # Creates user
 class UserCreate(BaseModel):
     email: EmailStr
@@ -63,6 +63,9 @@ class TokenData(BaseModel):
     id: Optional[int] = None
 
 
-# class Vote(BaseModel):
-#     post_id: int
-#     dir: conint(le=1)
+
+class Vote(BaseModel):
+    post_id: int
+    # ge=0, le=1: Specifies that the value of dir must be greater than or equal (ge) to 0 and less than or equal (le) to 1, 
+    # restricting it to only 0 or 1.
+    dir: int = Field(int, description="Direction of the vote (0 or 1)", ge=0, le=1) # either equal to 0 or 1
