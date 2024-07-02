@@ -4,7 +4,7 @@ Documentation of API comes available in both SwaggerUI (with route <strong> loca
 
 Supports JWT Token Authentication (Stateless, Client-end Authentication).
 
-A PostgreSQL database will need to be created.
+A PostgreSQL database will need to be created with HOSTNAME set to `localhost` and PORT set to `5432`.
 
 
 
