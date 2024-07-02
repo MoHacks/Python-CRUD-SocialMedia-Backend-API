@@ -6,5 +6,5 @@ Supports JWT Token Authentication (Stateless, Client-end Authentication).
 
 A PostgreSQL database will need to be created with HOSTNAME set to `localhost` and PORT set to `5432`.
 
-
+[Container published on Docker Hub:](https://hub.docker.com/repository/docker/malkh/python_crud_api)
 
