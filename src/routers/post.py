@@ -15,10 +15,6 @@ router = APIRouter(
 @router.get("/", response_model=List[schemas.PostVote])
 def get_Post(db: Session = Depends(get_db), current_user = Depends(oauth2.get_current_user), 
              limit: int = 8, skip: int = 0, search: Optional[str] = ""):
-    # cursor.execute("SELECT * FROM posts")
-    # posts = cursor.fetchall()
-    
-    # posts = db.query(dbmodels.Post).filter(dbmodels.Post.title.contains(search)).limit(limit).offset(skip).all()
 
     # SQLAlchemy automatically makes join default to LEFT INNER JOIN
     posts = db.query(dbmodels.Post, func.count(dbmodels.Vote.post_id).label("votes")).join(dbmodels.Vote, dbmodels.Post.id == dbmodels.Vote.post_id, isouter=True).group_by(dbmodels.Post.id).filter(dbmodels.Post.title.contains(search)).limit(limit).offset(skip).all()
@@ -33,14 +29,6 @@ def get_Post(db: Session = Depends(get_db), current_user = Depends(oauth2.get_cu
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 def make_Post(post: schemas.PostCreate, db: Session = Depends(get_db), current_user = Depends(oauth2.get_current_user)):
 
-    # cursor.execute("INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *", 
-    #                (post.title, post.content, post.published))
-    # newPost = cursor.fetchone()
-    # connect.commit()
-    # newPost = dbmodels.Post(title=post.title, content=post.content, published=post.published)
-    # Converts Post Object to Dictionary
-    # print(current_user.id)
-    # print(current_user.email)
     post = post.model_dump()
     
     # NOTE: unpack the dictionary into the Post Object 
@@ -60,11 +48,6 @@ def make_Post(post: schemas.PostCreate, db: Session = Depends(get_db), current_u
 @router.get("/{id:int}", status_code=status.HTTP_200_OK, response_model=schemas.PostVote)
 def get_Post_Id(id: int, db: Session = Depends(get_db), current_user = Depends(oauth2.get_current_user)):
     
-    # cursor.execute("SELECT * FROM posts WHERE id = %s", str(id))
-    # post = cursor.fetchone()
-    
-    # post = db.query(dbmodels.Post).filter(dbmodels.Post.id == id).first()
-    
     post = db.query(dbmodels.Post, func.count(dbmodels.Vote.post_id).label("votes")).join(dbmodels.Vote, dbmodels.Post.id == dbmodels.Vote.post_id, isouter=True).group_by(dbmodels.Post.id).filter(dbmodels.Post.id == id).first()
     
     return post
@@ -72,10 +55,6 @@ def get_Post_Id(id: int, db: Session = Depends(get_db), current_user = Depends(o
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_Post(id: int, db: Session = Depends(get_db), current_user = Depends(oauth2.get_current_user)):
-
-    # cursor.execute("DELETE FROM posts WHERE id = %s RETURNING *", (str(id)))
-    # deletedPost = cursor.fetchone()
-
     postQuery = db.query(dbmodels.Post).filter(dbmodels.Post.id == id)
 
     postRecord = postQuery.first()
@@ -92,14 +71,6 @@ def delete_Post(id: int, db: Session = Depends(get_db), current_user = Depends(o
 
 @router.put("/{id:int}", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 def update_Post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db), current_user = Depends(oauth2.get_current_user)):
-    # cursor.execute("UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *", 
-    #                (post.title, post.content, post.published, str(id)))
-    # updatedPost = cursor.fetchone()
-    
-    # if updatedPost:
-    #     connect.commit()
-    #     return {"message": updatedPost}
-    
     postQuery = db.query(dbmodels.Post).filter(dbmodels.Post.id == id)
 
     postRecord = postQuery.first()

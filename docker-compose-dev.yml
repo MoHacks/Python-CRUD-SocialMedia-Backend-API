@@ -1,0 +1,34 @@
+services: 
+  api: 
+    build: .
+    depends_on:
+      - postgres
+    ports: 
+      - 8000:8000
+    # bind mount syncs the local directories with the usr/src/app directory in the container
+    volumes:
+      - ./:/usr/src/app:ro #ro means read only
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+    environment: 
+    - DATABASE_HOSTNAME=postgres # this references the postgres below
+    - DATABASE_PORT=5432
+    - DATABASE_PASSWORD=postgres  
+    - DATABASE_NAME=backendDB
+    - DATABASE_USERNAME=postgres
+    - SECRET_KEY=09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
+    - ALGORITHM=HS256
+    - ACCESS_TOKEN_EXPIRE_MINUTES=300
+
+  postgres:
+    image: postgres
+    # restart: always
+    environment: 
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=backendDB
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+
+volumes:
+  postgres-db:

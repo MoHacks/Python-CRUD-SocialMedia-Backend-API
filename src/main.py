@@ -57,5 +57,5 @@ app.include_router(vote.router)
 # GET used for retreiving data
 @app.get("/")
 def root():
-    return {"nice": "Hello World"}
+    return {"success": "API endpoint is up and running"}
 
